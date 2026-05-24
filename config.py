@@ -1,12 +1,15 @@
 from pydantic_settings import BaseSettings
 from functools import lru_cache
+import os
 
 class Settings(BaseSettings):
     telegram_token: str
     telegram_group_id: str
     bot_name: str
 
-    gemini_api_key: str
+    gemini_api_key: str = os.getenv("GOOGLE_API_KEY", "")
+    model_name: str = os.getenv("MODEL_NAME", "gemini-2.5-flash")
+    temperature: float = float(os.getenv("MODEL_TEMPERATURE", 0.7))
 
     webhook_url: str
     database_url: str = "sqlite:///./pm_agent.db"
