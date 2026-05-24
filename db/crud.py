@@ -131,7 +131,7 @@ def set_sprint_goal(db: Session, chat_id: str, goal: str) -> SprintGoal:
     existing = db.query(SprintGoal).filter(SprintGoal.chat_id == chat_id).first()
     if existing:
         existing.goal = goal
-        existing.updated_at = datetime.utcnow()
+        existing.updated_at = datetime.now(timezone.utc).strftime("%Y-%m-%d")
         return existing
     sg = SprintGoal(chat_id=chat_id, goal=goal)
     db.add(sg)
@@ -203,7 +203,7 @@ def upsert_member(
     if member:
         member.username  = username or member.username
         member.full_name = full_name or member.full_name
-        member.last_seen = datetime.utcnow()
+        member.last_seen = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     else:
         member = TeamMember(
             chat_id=chat_id,
