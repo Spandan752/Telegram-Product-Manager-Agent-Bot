@@ -1,0 +1,12 @@
+fastapi
+uvicorn[standard]
+python-telegram-bot
+langchain
+langchain-google-genai
+langgraph
+sqlalchemy
+alembic
+apscheduler
+python-dotenv
+pydantic-settings
+httpx
