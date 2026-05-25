@@ -57,7 +57,7 @@ def list_tasks(
 
 def list_overdue_tasks(db: Session, chat_id: str) -> list[Task]:
     """Open/in-progress tasks whose due_date is before today."""
-    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    today = datetime.now(timezone.utc)
     return db.query(Task).filter(
         and_(
             Task.chat_id == chat_id,
@@ -131,7 +131,7 @@ def set_sprint_goal(db: Session, chat_id: str, goal: str) -> SprintGoal:
     existing = db.query(SprintGoal).filter(SprintGoal.chat_id == chat_id).first()
     if existing:
         existing.goal = goal
-        existing.updated_at = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        existing.updated_at = datetime.now(timezone.utc)
         return existing
     sg = SprintGoal(chat_id=chat_id, goal=goal)
     db.add(sg)
@@ -203,7 +203,7 @@ def upsert_member(
     if member:
         member.username  = username or member.username
         member.full_name = full_name or member.full_name
-        member.last_seen = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        member.last_seen = datetime.now(timezone.utc)
     else:
         member = TeamMember(
             chat_id=chat_id,

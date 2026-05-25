@@ -32,23 +32,30 @@ def _is_group(update: Update) -> bool:
     return update.effective_chat.type in ("group", "supergroup")
 
 
+# def _should_respond(update: Update) -> bool:
+#     """
+#     In group chats only respond when:
+#       - the bot is @mentioned
+#       - the message is a reply to the bot
+#     In private chats always respond.
+#     """
+#     if not _is_group(update):
+#         return True
+#     text = update.message.text or ""
+#     mentioned = f"@{settings.bot_username}" in text
+#     reply_to_bot = (
+#         update.message.reply_to_message is not None
+#         and update.message.reply_to_message.from_user is not None
+#         and update.message.reply_to_message.from_user.username == settings.bot_username
+#     )
+#     return mentioned or reply_to_bot
+
 def _should_respond(update: Update) -> bool:
     """
-    In group chats only respond when:
-      - the bot is @mentioned
-      - the message is a reply to the bot
-    In private chats always respond.
+    In group chats, always pass every message to the agent.
+    The LLM decides whether to act — not a keyword filter.
     """
-    if not _is_group(update):
-        return True
-    text = update.message.text or ""
-    mentioned = f"@{settings.bot_username}" in text
-    reply_to_bot = (
-        update.message.reply_to_message is not None
-        and update.message.reply_to_message.from_user is not None
-        and update.message.reply_to_message.from_user.username == settings.bot_username
-    )
-    return mentioned or reply_to_bot
+    return True
 
 
 def _clean_text(text: str) -> str:

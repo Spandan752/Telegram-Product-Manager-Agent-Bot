@@ -12,7 +12,7 @@ _app: Application | None = None
 def get_bot() -> Application:
     global _app
     if _app is None:
-        _app = (Application.builder().token(settings.telegram_bot_token).build())
+        _app = (Application.builder().token(settings.telegram_token).build())
     return _app
 
 

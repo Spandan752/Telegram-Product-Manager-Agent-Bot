@@ -1,5 +1,5 @@
 from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_core import BaseMessage, HumanMessage, SystemMessage, ToolMessage, AIMessage
+from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage, ToolMessage, AIMessage
 from langgraph.graph import StateGraph, END
 from langgraph.graph.message import add_messages
 from typing import Annotated, TypedDict
@@ -23,7 +23,7 @@ _SYSTEM_PROMPT = Path("prompts/system.md").read_text()
 LLM = ChatGoogleGenerativeAI(
     api_key=settings.gemini_api_key,
     model=settings.model_name,
-    temperature=settings.temperature,
+    # temperature=settings.temperature,
     max_tokens=1024
 ).bind_tools(ALL_TOOLS)
 

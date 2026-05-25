@@ -16,8 +16,8 @@ from scheduler.jobs import start_scheduler, stop_scheduler
 
 settings = get_settings()
 
-WEBHOOK_PATH  = f"/webhook/{settings.telegram_bot_token}"
-WEBHOOK_URL   = f"{settings.webhook_base_url}{WEBHOOK_PATH}"
+WEBHOOK_PATH  = f"/webhook/{settings.telegram_token}"
+WEBHOOK_URL   = f"{settings.webhook_url}{WEBHOOK_PATH}"
 
 # Managing lifespan of the bot
 
