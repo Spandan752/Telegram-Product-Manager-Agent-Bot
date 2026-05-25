@@ -104,7 +104,7 @@ def update_task_status_tool(task_id: int, status: str) -> str:
         task = update_task_status(db, _CHAT_ID, task_id, status_enum)
         if not task:
             return f"Task #{task_id} not found."
-        return f"Task #{task_id} updated to '{task.status.value}' ✅  — {task.title}"
+        return f"Task #{task_id} updated to '{task.status.value}' — {task.title}"
  
 
 @tool
@@ -144,7 +144,7 @@ def update_task_tool(
         task = update_task_fields(db, _CHAT_ID, task_id, **kwargs)
         if not task:
             return f"Task #{task_id} not found."
-        return f"Task #{task_id} updated ✅\n{task.short_str()}"
+        return f"Task #{task_id} updated \n{task.short_str()}"
     
 
 

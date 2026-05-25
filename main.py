@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Request, HTTPException
 from config import get_settings
-# import logging
+import logging
 from contextlib import asynccontextmanager
 from telegram import Update
 from telegram.ext import CommandHandler, MessageHandler, filters
@@ -13,8 +13,14 @@ from bot.handlers import (
 )
 from scheduler.jobs import start_scheduler, stop_scheduler
 
+# Testing 
+import asyncio
+from scheduler.jobs import _morning_standup_ping
+# testing only
 
 settings = get_settings()
+log = logging.getLogger(__name__)
+
 
 WEBHOOK_PATH  = f"/webhook/{settings.telegram_token}"
 WEBHOOK_URL   = f"{settings.webhook_url}{WEBHOOK_PATH}"
@@ -48,6 +54,13 @@ async def lifespan(app: FastAPI):
     )
 
     start_scheduler()
+# test code
+    # from scheduler.jobs import _morning_standup_ping
+    # asyncio.create_task(_morning_standup_ping())
+    # log.info("🧪 Test: fired _morning_standup_ping")
+
+    # log.info("✅ Alex is live.")
+# test code
 
     yield  # The app is now running
 
@@ -56,6 +69,7 @@ async def lifespan(app: FastAPI):
     await tg_bot.shutdown()
     
     stop_scheduler()
+
 
 # App
 

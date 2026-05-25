@@ -15,8 +15,7 @@ settings = get_settings()
 
 # System prompt
 
-_SYSTEM_PROMPT = Path("prompts/system.md").read_text()
-
+_SYSTEM_PROMPT = Path("prompts/system.md").read_text(encoding="utf-8")
 
 # LLM Setup
 
@@ -79,7 +78,7 @@ def context_node(state: AgentState) -> dict:
 # Node2: call LLM with tools
 
 def call_llm(state: AgentState) -> dict:
-    """Invoke Claude. May return text, tool calls, or both."""
+    """Invoke Gemini. May return text, tool calls, or both."""
     response = LLM.invoke(state["messages"])
     return {"messages": [response]}
 
@@ -171,23 +170,41 @@ async def run_agent(chat_id: str, sender_name: str, user_message: str) -> str:
     final_state = await agent_graph.ainvoke(initial_state)
 
     reply = ""
-    for msg in final_state["messages"][-1]:
-        if isinstance(msg, AIMessage) and isinstance(msg.content, str) and msg.content.strip():
+    for msg in reversed(final_state["messages"]):
+        if not isinstance(msg, AIMessage):
+            continue
+
+        # Plain string content
+        if isinstance(msg.content, str) and msg.content.strip():
             reply = msg.content.strip()
             break
 
-        # Handle list content
-        if isinstance(msg, AIMessage) and isinstance(msg.content, list):
+        # List content (mixed text + tool_use blocks)
+        if isinstance(msg.content, list):
+            text_parts = []
             for block in msg.content:
-                if isinstance(block, dict) and block.get("type") == "text" and block.get("text", "").strip():
-                    reply = block["text"].strip()
-                    break
-            if reply:
+                if isinstance(block, dict) and block.get("type") == "text":
+                    t = block.get("text", "").strip()
+                    if t:
+                        text_parts.append(t)
+            if text_parts:
+                reply = "\n".join(text_parts)
                 break
 
+    # If Claude used tools but gave no final text, generate a confirmation
     if not reply:
-        reply = "Done! Let me know if you need anything else."
-
+        from langchain_core.messages import ToolMessage
+        tool_results = [
+            m for m in final_state["messages"]
+            if isinstance(m, ToolMessage)
+        ]
+        if tool_results:
+            # Agent acted but didn't narrate — ask it to summarise
+            last_tool_output = tool_results[-1].content
+            reply = last_tool_output if last_tool_output else "Done"
+        else:
+            reply = "Got it!"
+            
     # Persistent reply
     with get_db() as db:
         append_message(db, chat_id, "assistant", reply)

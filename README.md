@@ -29,7 +29,7 @@ An AI Product Manager that lives inside your Telegram group. Tracks tasks, logs 
 | Bot interface | python-telegram-bot 21 | Native async, webhook support, well-maintained |
 | Web server | FastAPI + uvicorn | Async, lifespan hooks, minimal boilerplate |
 | Agent framework | LangGraph | Graph-based flow handles multi-step tool loops cleanly |
-| LLM | Google Gemini 2.5 Flash | Best-in-class for nuanced judgment (when to act, when to stay quiet) |
+| LLM | Google Gemini 3.5 Flash | Best-in-class for nuanced judgment (when to act, when to stay quiet) |
 | Tools | LangChain `@tool` | Clean schema → docstring pattern Claude reads as instructions |
 | Database | SQLAlchemy + SQLite | Persistent across restarts, zero infra for demo |
 | Scheduler | APScheduler | In-process cron, no extra infra needed |
@@ -128,15 +128,6 @@ Then send `/start` to the Telegram group. Aria should reply.
 ---
 
 ## Commands
-
-| Command | What happens |
-|---|---|
-| `/start` | Introduction and command list |
-| `/tasks` | All open + in-progress tasks |
-| `/decisions` | Decision log |
-| `/standup` | Full status summary |
-| `/sprint <goal>` | Set the sprint goal |
-| `/help` | Same as /start |
 
 **Natural language** (mention the bot in the group):
 ```

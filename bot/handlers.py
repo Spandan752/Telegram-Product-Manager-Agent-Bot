@@ -60,7 +60,7 @@ def _should_respond(update: Update) -> bool:
 
 def _clean_text(text: str) -> str:
     """Strip the bot mention so it doesn't confuse the LLM."""
-    return text.replace(f"@{settings.bot_username}", "").strip()
+    return text.replace(f"@{settings.bot_name}", "").strip()
 
 
 def _track_member(update: Update) -> None:
@@ -77,6 +77,18 @@ def _track_member(update: Update) -> None:
             full_name=user.full_name,
         )
 
+
+async def _safe_reply(message, text: str, **kwargs) -> None:
+    """
+    Try sending with Markdown first.
+    If Telegram rejects it (bad entities), fall back to plain text.
+    """
+    try:
+        await message.reply_text(text, parse_mode="Markdown", **kwargs)
+    except Exception:
+        # Strip any markdown symbols and send as plain text
+        plain = text.replace("*", "").replace("_", "").replace("`", "").replace("[", "").replace("]", "")
+        await message.reply_text(plain, parse_mode=None, **kwargs)
 
 # Commands
 
@@ -111,7 +123,7 @@ async def cmd_tasks(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         chat_id=chat_id,
         user_message="List all open and in-progress tasks.", sender_name=_sender_name(update)
     )
-    await update.message.reply_text(reply, parse_mode="Markdown")
+    await _safe_reply(update.message, reply)
 
 
 async def cmd_decisions(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -123,7 +135,7 @@ async def cmd_decisions(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         user_message="List all logged decisions.",
         sender_name=_sender_name(update)
     )
-    await update.message.reply_text(reply, parse_mode="Markdown")
+    await _safe_reply(update.message, reply)
 
 
 async def cmd_standup(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -135,9 +147,9 @@ async def cmd_standup(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         user_message="Generate the standup summary for the team.",
         sender_name=_sender_name(update),
     )
-    await update.message.reply_text(reply, parse_mode="Markdown")
- 
- 
+    await _safe_reply(update.message, reply)
+
+
 async def cmd_sprint(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     _track_member(update)
     goal = (update.message.text or "").replace("/sprint", "").strip()
@@ -154,7 +166,7 @@ async def cmd_sprint(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
         user_message=f'Set the sprint goal to: "{goal}"',
         sender_name=_sender_name(update),
     )
-    await update.message.reply_text(reply, parse_mode="Markdown")
+    await _safe_reply(update.message, reply)
 
 
 # Message handler for non-command messages
@@ -163,6 +175,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     """Main handler — routes any text message through the agent."""
     if not update.message or not update.message.text:
         return 
+    
     _track_member(update)
 
     if not _should_respond(update):
@@ -181,11 +194,18 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             user_message=text,
             sender_name = _sender_name(update)
         )
-        await update.message.reply_text(
-            reply,
-            parse_mode="Markdown",
-            reply_to_message_id=update.message.message_id
-        )
+
+        # Only reply if the agent actually has something to say
+        # LLM returns empty or "." to signal intentional silence
+        if reply and reply.strip() and reply.strip() not in (".", "...", "-"):
+
+            # await update.message.reply_text(
+            #     reply,
+            #     parse_mode="Markdown",
+            #     reply_to_message_id=update.message.message_id
+            # )  
+            await _safe_reply(update.message, reply)
+
     except Exception as e:
         await update.message.reply_text(
             "Something went wrong on my end. Please try again in a moment."

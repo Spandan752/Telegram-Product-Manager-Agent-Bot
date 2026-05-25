@@ -17,9 +17,14 @@ def get_bot() -> Application:
 
 
 async def send_message(chat_id: str, text: str, parse_mode: str = "Markdown") -> None:
-    """Send a message to any user"""
     app = get_bot()
-    await app.bot.send_message(chat_id=chat_id, text=text, parse_mode=parse_mode)
+    try:
+        await app.bot.send_message(chat_id=chat_id, text=text, parse_mode=parse_mode)
+    except Exception:
+        # Fallback to plain text
+        plain = text.replace("*", "").replace("_", "").replace("`", "").replace("[", "").replace("]", "")
+        await app.bot.send_message(chat_id=chat_id, text=plain, parse_mode=None)
+
 
 
 async def send_group_message(text: str, parse_mode: str = "Markdown") -> None:

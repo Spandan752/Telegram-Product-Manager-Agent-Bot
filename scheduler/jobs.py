@@ -10,14 +10,17 @@ Jobs:
 All jobs call run_agent() with a synthetic message so the LLM decides
 exactly what to say — the scheduler just decides *when* and *who*.
 """
+import logging
 import asyncio
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
+
 from config import get_settings
 from db.database import get_db
 from db.crud import list_members, list_overdue_tasks, get_member_by_username, list_tasks
 from db.models import TaskStatus
 
+log = logging.getLogger(__name__)
 settings = get_settings()
 
 _scheduler: AsyncIOScheduler | None = None
@@ -39,7 +42,7 @@ async def _send(chat_id: str, text: str) -> None:
     try:
         await send_message(chat_id, text)
     except Exception as e:
-        raise RuntimeError(f"Failed to send message to {chat_id}: {e}")
+        log.error(f"Failed to send message to {chat_id}: {e}")
  
 async def _agent(chat_id: str, prompt: str, sender: str = "Scheduler") -> str:
     """Run the agent with a synthetic prompt and return the reply."""
@@ -51,7 +54,8 @@ async def _agent(chat_id: str, prompt: str, sender: str = "Scheduler") -> str:
             sender_name=sender,
         )
     except Exception as e:
-        raise RuntimeError(f"Agent error in scheduled job: {e}")
+        log.error(f"Agent error in scheduled job: {e}")
+        return ""
 
 
 # Job 1: Morning standup ping
@@ -61,6 +65,7 @@ async def _morning_standup_ping():
     Every morning: DM each active team member asking for their update.
     Then post a prompt to the group to kick off the standup.
     """
+    log.info("Job: morning_standup_ping")
     group_id = settings.telegram_group_id
 
     # get list of active team members from db
@@ -85,6 +90,7 @@ async def _morning_standup_ping():
         f"Reply here and I'll include it in the team update."
         )
         await _send(user_id, dm_text)
+        log.info(f"Sent standup DM to {display} ({user_id})")
 
     # Post a prompt to the group to kick off the standup
     group_reply = await _agent(
@@ -104,6 +110,7 @@ async def _evening_update():
     Every evening: post a full status digest to the group.
     Uses generate_standup_summary tool via the agent.
     """
+    log.info("Job: evening_digest")
     group_id = settings.telegram_group_id
 
     reply = await _agent(
@@ -123,6 +130,7 @@ async def _overdue_followup():
     Every afternoon: DM assignees of overdue tasks.
     Also post a summary of overdue items to the group if any exist.
     """
+    log.info("Job: overdue_followup")
     group_id = settings.telegram_group_id
 
     with get_db() as db:
@@ -182,6 +190,7 @@ async def _blocked_task_alert():
     Twice daily: if any tasks are blocked, surface them to the group.
     Only posts if there are actually blocked tasks.
     """
+    log.info("Job: blocked_alert")
     group_id = settings.telegram_group_id
 
     with get_db() as db:
@@ -201,6 +210,7 @@ async def _blocked_task_alert():
         + "\n\nCan someone help unblock these?"
     )
     await _send(group_id, msg)
+    
 
 
 # Sync wrappers to call async jobs from APScheduler
@@ -225,7 +235,7 @@ def job_blocked(): _run(_blocked_task_alert())
 def start_scheduler() -> None:
     global _scheduler
 
-    _scheduler = AsyncIOScheduler(Timezone="UTC")
+    _scheduler = AsyncIOScheduler(timezone="UTC")
 
     # Morning standup ping — weekdays only
     _scheduler.add_job(
@@ -279,9 +289,11 @@ def start_scheduler() -> None:
     )
 
     _scheduler.start()
-    
+    log.info("Scheduler started with jobs: %s", _scheduler.get_jobs())
+
 
 def stop_scheduler() -> None:
     global _scheduler
     if _scheduler and _scheduler.running:
         _scheduler.shutdown(wait=False)
+        log.info("Scheduler stopped")
