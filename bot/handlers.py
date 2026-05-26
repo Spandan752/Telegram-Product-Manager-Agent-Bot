@@ -95,6 +95,30 @@ async def _safe_reply(message, text: str, **kwargs) -> None:
 async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handle the /start command."""
     _track_member(update)
+
+    # Private chat — user has clicked the bot link and hit Start
+    # Mark them as reachable for DM-based standup pings (Requirement 4)
+    if not _is_group(update):
+        try:
+            with get_db() as db:
+                upsert_member(
+                    db,
+                    chat_id=str(settings.telegram_group_id),
+                    telegram_user_id=str(update.effective_user.id),
+                    username=update.effective_user.username,
+                    full_name=update.effective_user.full_name,
+                )
+        except Exception as e:
+            raise Exception(f"Failed to track member in DB: {e}")
+        
+        await update.message.reply_text(
+            "✅ You're all set! I'll DM you for standups and task reminders.\n\n"
+            "Head back to the group to get started.",
+            parse_mode="Markdown",
+        )
+        return
+
+# Group chat — introduce the bot and provide instructions
     await update.message.reply_text(
         "👋 Hey! I'm *Alex*, your AI Product Manager.\n\n"
         "I'll track tasks, log decisions, run standups, and keep the team aligned — "
@@ -210,4 +234,4 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         await update.message.reply_text(
             "Something went wrong on my end. Please try again in a moment."
         )
-        raise
+        raise 
